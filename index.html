@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سامانه هوشمند تنظیم برنامه هفتگی</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;800&display=swap"
+        rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Libraries for Excel, PDF, and Image export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="light-theme">
+
+    <!-- Main Application Container -->
+    <div id="app-container">
+        <!-- Header Section -->
+        <header class="app-header">
+            <div class="header-title">
+                <i class="fas fa-calendar-alt fa-lg"></i>
+                <h1>سامانه هوشمند تنظیم برنامه هفتگی</h1>
+            </div>
+            <div class="toolbar">
+                <!-- Week & View Switchers -->
+                <div class="toolbar-group">
+                    <div id="week-switcher" class="view-switcher">
+                        <button id="week-a-btn" class="week-btn active" data-week="A">هفته الف</button>
+                        <button id="week-b-btn" class="week-btn" data-week="B">هفته ب</button>
+                    </div>
+                    <button id="copy-to-week-b-btn" class="action-btn secondary hidden" title="کپی برنامه هفته الف به هفته ب"><i class="fas fa-copy"></i></button>
+                    <div id="view-switcher" class="view-switcher">
+                        <button id="full-view-btn" class="view-btn active" title="نمایش برنامه کل مدرسه"><i class="fas fa-school"></i></button>
+                        <button id="teacher-view-btn" class="view-btn" title="نمایش برنامه یک دبیر"><i class="fas fa-user-tie"></i></button>
+                    </div>
+                    <div id="teacher-selector-container" class="selector-wrapper hidden">
+                        <select id="teacher-selector"></select>
+                    </div>
+                </div>
+
+                <!-- Tools & Zoom -->
+                <div class="toolbar-group">
+                    <div class="zoom-control">
+                        <i class="fas fa-search-minus"></i>
+                        <input type="range" id="zoom-slider" min="0.7" max="1.5" step="0.05" value="1">
+                        <i class="fas fa-search-plus"></i>
+                    </div>
+                    <button id="auto-schedule-btn" class="action-btn" title="چیدمان خودکار"><i class="fas fa-magic"></i></button>
+                    <button id="highlight-tool-btn" class="action-btn" title="ابزار هایلایت"><i class="fas fa-highlighter"></i></button>
+                    <button id="merge-tool-btn" class="action-btn" title="ابزار ادغام زنگ‌ها"><i class="fas fa-wand-magic-sparkles"></i></button>
+                </div>
+
+                <!-- Export & Settings -->
+                <div class="toolbar-group">
+                    <button id="export-excel-btn" class="action-btn" title="خروجی اکسل (XLSX)"><i class="fas fa-file-excel"></i></button>
+                    <button id="export-img-btn" class="action-btn" title="خروجی عکس (PNG)"><i class="fas fa-camera"></i></button>
+                    <button id="export-pdf-btn" class="action-btn" title="خروجی PDF"><i class="fas fa-file-pdf"></i></button>
+                    <button id="print-btn" class="action-btn" title="چاپ نمای فعلی"><i class="fas fa-print"></i></button>
+                    <button id="settings-btn" class="action-btn" title="تنظیمات و ابزارها"><i class="fas fa-cog"></i></button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-content">
+                    <!-- Unplaced Lessons Section -->
+                    <div id="unplaced-lessons-container" class="sidebar-section">
+                        <div class="section-header collapsible">
+                            <h2><i class="fas fa-book"></i> دروس تخصیص نیافته</h2>
+                            <div class="header-controls">
+                                <button id="add-lesson-btn" class="add-btn" title="افزودن درس جدید"><i class="fas fa-plus-circle"></i></button>
+                                <i class="fas fa-chevron-up collapse-icon"></i>
+                            </div>
+                        </div>
+                        <div class="section-content">
+                            <input type="search" id="lesson-search" placeholder="جستجوی درس، کلاس یا دبیر...">
+                            <div id="unplaced-lessons-list" class="item-list"></div>
+                        </div>
+                    </div>
+                    <!-- Teacher Load Section -->
+                    <div id="teacher-load-container" class="sidebar-section">
+                        <div class="section-header collapsible">
+                            <h2><i class="fas fa-chalkboard-teacher"></i> بار تدریس دبیران (ساعت)</h2>
+                             <div class="header-controls">
+                                <i class="fas fa-chevron-up collapse-icon"></i>
+                            </div>
+                        </div>
+                        <div class="section-content">
+                            <div id="teacher-load-list" class="item-list"></div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Schedule Display Area -->
+            <div class="schedule-display">
+                <div id="full-school-view" class="view-container active"></div>
+                <div id="teacher-view" class="view-container"></div>
+            </div>
+        </main>
+
+        <!-- Footer / Validation Panel -->
+        <footer id="validation-panel" class="validation-panel">
+            <div class="validation-header" id="toggle-validation-panel">
+                <h3><i class="fas fa-check-circle"></i> آمار و اعتبارسنجی برنامه</h3>
+                <button class="toggle-btn"><i class="fas fa-chevron-up"></i></button>
+            </div>
+            <div class="validation-content">
+                <div id="stats-container" class="stats-container"></div>
+                <div id="conflicts-container" class="conflicts-container"></div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modals -->
+    <!-- Highlight Modal -->
+    <div id="highlight-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2><i class="fas fa-highlighter"></i> هایلایت در برنامه</h2>
+            <div class="highlight-controls">
+                <select id="highlight-type-select">
+                    <option value="teacher">دبیر</option>
+                    <option value="class">کلاس</option>
+                    <option value="room">اتاق</option>
+                </select>
+                <select id="highlight-item-select"></select>
+                <button id="clear-highlights-btn" class="panel-btn secondary">پاک کردن همه</button>
+            </div>
+             <div id="active-highlights-container">
+                <!-- Active highlights will be rendered here by JS -->
+             </div>
+        </div>
+    </div>
+
+    <!-- Lesson Modal -->
+    <div id="lesson-modal" class="modal">
+        <div class="modal-content"><span class="close-btn">&times;</span>
+            <h2 id="lesson-modal-title"></h2>
+            <form id="lesson-form">
+                <input type="text" id="lesson-name-input" placeholder="نام درس" required>
+                <select id="lesson-class-select" required>
+                    <option value="">-- انتخاب کلاس --</option>
+                </select>
+                <select id="lesson-teacher-select" required>
+                    <option value="">-- انتخاب دبیر --</option>
+                </select>
+                <select id="lesson-room-select">
+                    <option value="">-- بدون اتاق خاص --</option>
+                </select>
+                <input type="number" id="lesson-periods-input" min="1" max="4" value="1" placeholder="تعداد زنگ">
+                <button type="submit" class="form-submit-btn">ذخیره</button>
+            </form>
+        </div>
+    </div>
+    <!-- Other Modals (Teacher, Class, Room) -->
+    <div id="teacher-modal" class="modal">
+        <div class="modal-content"><span class="close-btn">&times;</span>
+            <h2 id="teacher-modal-title"></h2>
+            <form id="teacher-form"><input type="text" id="teacher-name-input" placeholder="نام و نام خانوادگی دبیر"
+                    required><button type="submit" class="form-submit-btn">ذخیره</button></form>
+        </div>
+    </div>
+    <div id="class-modal" class="modal">
+        <div class="modal-content"><span class="close-btn">&times;</span>
+            <h2 id="class-modal-title"></h2>
+            <form id="class-form"><input type="text" id="class-name-input" placeholder="نام کلاس (مثال: دهم تجربی)"
+                    required><input type="text" id="class-field-input" placeholder="رشته (مثال: تجربی)" >
+                <button type="submit" class="form-submit-btn">ذخیره</button>
+            </form>
+        </div>
+    </div>
+    <div id="room-modal" class="modal">
+        <div class="modal-content"><span class="close-btn">&times;</span>
+            <h2 id="room-modal-title"></h2>
+            <form id="room-form"><input type="text" id="room-name-input" placeholder="نام اتاق" required><button
+                    type="submit" class="form-submit-btn">ذخیره</button></form>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content wide">
+            <span class="close-btn">&times;</span>
+            <h2><i class="fas fa-cogs"></i> تنظیمات، ورود و خروج اطلاعات</h2>
+            <div class="settings-tabs">
+                <button class="tab-btn active" data-tab="data-io">ورود و خروج</button>
+                <button class="tab-btn" data-tab="data-management">مدیریت داده‌ها</button>
+                <button class="tab-btn" data-tab="constraints">محدودیت‌ها</button>
+                <button class="tab-btn" data-tab="display">ظاهر و چاپ</button>
+                <button class="tab-btn" data-tab="change-log">گزارش تغییرات</button>
+                <button class="tab-btn" data-tab="about-creator">درباره سازنده</button>
+            </div>
+            <!-- Data I/O Tab -->
+            <div class="tab-content active" id="data-io-tab">
+                <div class="settings-columns">
+                    <div class="settings-section">
+                        <h3><i class="fas fa-file-import"></i> ورود اطلاعات از اکسل</h3>
+                        <p class="help-text">برای ورود دروس، فایل اکسل باید شامل ستون‌های "کلاس"، "نام درس"، "کد پرسنلی"، "تعداد زنگ" و "رشته" باشد.</p>
+                        <button id="import-teachers-btn" class="panel-btn"><i class="fas fa-chalkboard-teacher"></i>
+                            ورود لیست دبیران</button>
+                        <input type="file" id="import-teachers-input" accept=".xlsx, .xls" class="hidden">
+                        <button id="import-lessons-btn" class="panel-btn"><i class="fas fa-book-reader"></i> ورود دروس و کلاس‌ها</button>
+                        <input type="file" id="import-lessons-input" accept=".xlsx, .xls" class="hidden">
+                    </div>
+                    <div class="settings-section">
+                        <h3><i class="fas fa-database"></i> پشتیبان‌گیری و همگام‌سازی</h3>
+                        <button id="backup-btn" class="panel-btn success"><i class="fas fa-download"></i> پشتیبان‌گیری
+                            کل برنامه</button>
+                        <button id="restore-btn" class="panel-btn success"><i class="fas fa-upload"></i> بازیابی از
+                            فایل</button>
+                        <input type="file" id="restore-input" accept=".json" class="hidden">
+                        <hr>
+                         <button id="print-all-teachers-btn" class="panel-btn secondary"><i class="fas fa-print"></i> چاپ برنامه همه دبیران</button>
+                    </div>
+                    <div class="settings-section">
+                        <h3><i class="fas fa-exclamation-triangle"></i> عملیات تکمیلی</h3>
+                        <button id="clear-schedule-btn" class="panel-btn warning"><i class="fas fa-eraser"></i> پاک
+                            کردن جدول هفته فعلی</button>
+                        <button id="reset-app-btn" class="panel-btn danger"><i class="fas fa-trash-alt"></i> حذف تمام
+                            داده‌ها</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Data Management Tab -->
+            <div class="tab-content" id="data-management-tab">
+                <div class="management-grid">
+                    <div id="teachers-management" class="management-column"></div>
+                    <div id="classes-management" class="management-column"></div>
+                    <div id="rooms-management" class="management-column"></div>
+                </div>
+            </div>
+            <!-- Constraints Tab -->
+            <div class="tab-content" id="constraints-tab">
+                <h3><i class="fas fa-ban"></i> تعریف محدودیت‌های زمانی</h3>
+                <p>برای قفل کردن یک زمان برای یک دبیر یا کلاس، از لیست زیر انتخاب کرده و روی خانه‌های جدول کلیک کنید.
+                </p>
+                <div class="constraints-controls">
+                    <select id="constraint-type-select">
+                        <option value="teacher">دبیر</option>
+                        <option value="class">کلاس</option>
+                    </select>
+                    <select id="constraint-item-select"></select>
+                </div>
+                <div id="constraints-schedule" class="schedule-container mini"></div>
+            </div>
+            <!-- Display Settings Tab -->
+            <div class="tab-content" id="display-tab">
+                <h3><i class="fas fa-palette"></i> تنظیمات ظاهری و چاپ</h3>
+                <div class="setting-item">
+                    <label for="theme-toggle">تم تاریک</label>
+                    <label class="toggle-switch-label"><input type="checkbox" id="theme-toggle"
+                            class="toggle-switch-input"><span class="toggle-switch-slider"></span></label>
+                </div>
+                <div class="setting-item">
+                    <label for="bw-print-toggle">چاپ سیاه و سفید</label>
+                    <label class="toggle-switch-label"><input type="checkbox" id="bw-print-toggle"
+                            class="toggle-switch-input"><span class="toggle-switch-slider"></span></label>
+                </div>
+                <div class="setting-item">
+                    <label for="integrated-view-toggle">نمای یکپارچه (نمایش کل جدول در صفحه)</label>
+                    <label class="toggle-switch-label"><input type="checkbox" id="integrated-view-toggle"
+                            class="toggle-switch-input"><span class="toggle-switch-slider"></span></label>
+                </div>
+            </div>
+            <!-- Change Log Tab -->
+            <div class="tab-content" id="change-log-tab">
+                 <h3><i class="fas fa-history"></i> گزارش تغییرات برنامه</h3>
+                 <div id="change-log-list" class="item-list"></div>
+            </div>
+            <!-- About Creator Tab -->
+            <div class="tab-content" id="about-creator-tab">
+                <div class="about-section">
+                    <h3><i class="fas fa-user-circle"></i> درباره سازنده</h3>
+                    <p><strong>ایده و طراحی:</strong> سیدمحمدکاظم صدری شال</p>
+                    <p><strong>تاریخ تولید:</strong> مرداد ماه 1404</p>
+                    <hr>
+                    <h4>روش‌های ارتباطی</h4>
+                    <div class="contact-links">
+                        <p><i class="fab fa-telegram"></i> تلگرام: @YourTelegramID</p>
+                        <p><i class="fas fa-comment-dots"></i> ایتا: @YourEitaaID</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Other UI Elements -->
+    <div id="conflict-tooltip"></div>
+    <div id="toast-container"></div>
+    <div id="confirm-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="confirm-title"></h3>
+            <p id="confirm-text"></p>
+            <div class="confirm-buttons"><button id="confirm-yes-btn" class="form-submit-btn danger">بله،
+                    مطمئنم</button><button id="confirm-no-btn" class="form-submit-btn secondary">انصراف</button></div>
+        </div>
+    </div>
+    <div id="loading-spinner" class="hidden">
+        <div class="spinner"></div>
+    </div>
+    
+    <!-- Print Container for All Teachers -->
+    <div id="print-all-container" class="hidden"></div>
+
+    <!-- Main Script -->
+    <script src="script.js"></script>
+</body>
+
+</html>
