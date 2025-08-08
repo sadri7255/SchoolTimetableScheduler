@@ -1207,3 +1207,33 @@ body {
         page-break-before: auto;
     }
 }
+
+/* Sample File Links in Settings Modal */
+.sample-links-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin: 0.5rem 0 1.25rem; /* Adds space above and below the links */
+}
+
+.sample-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1rem;
+    background-color: var(--primary-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-radius: var(--border-radius-md);
+    transition: all var(--transition-speed);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.sample-link:hover {
+    background-color: var(--border-color);
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+    transform: translateY(-2px);
+}
