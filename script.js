@@ -3,10 +3,11 @@
  * A comprehensive, interactive, and persistent single-page application 
  * for creating and managing school timetables.
  *
- * @version 16.0.0
+ * @version 16.1.0
  * @author Gemini & S.M.Kazem Sadri
  *
- * Changelog v16.0.0:
+ * Changelog v16.1.0:
+ * - FEATURE: Added a toggle in settings to switch between 5-day (Sat-Wed) and 6-day (Sat-Thu) week view.
  * - LOGIC CHANGE: Teacher load calculation now considers merged cells. If a lesson is placed in a merged slot, its duration is based on the size of the slot, not the lesson's properties.
  * - FIX: Resolved a rendering bug in the Settings modal where tab content would sometimes not appear. Content is now reliably re-rendered on tab switch.
  * - UI/UX FIX: Improved sidebar section collapse behavior. Collapsing one section now correctly allocates the freed space to the other.
@@ -46,11 +47,11 @@ document.addEventListener('DOMContentLoaded', () => {
             rooms: [],
             constraints: { unavailable: [] },
             schedule: { A: {}, B: {} },
-            merges: { A: [], B: [] }, 
-            changeLog: [], 
+            merges: { A: [], B: [] },
+            changeLog: [],
             lessonColors: {},
             fieldColors: {},
-            activeHighlights: [], // Changed from object to array
+            activeHighlights: [],
             draggedElementInfo: null,
             activeWeek: 'A',
             activeView: 'full',
@@ -59,12 +60,22 @@ document.addEventListener('DOMContentLoaded', () => {
             settings: {
                 bwPrint: false,
                 integratedView: false,
+                isSixDayWeek: true, // <-- NEW
             }
         };
     };
 
     // --- 3. Utility Functions ---
     const toPersianNumber = (n) => n != null ? n.toString().replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹' [d]) : '';
+
+    const getActiveDays = () => {
+        const allDays = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه'];
+        if (state.settings.isSixDayWeek) {
+            return allDays;
+        }
+        return allDays.slice(0, 5); // Returns only Sat-Wed
+    };
+
     const showLoading = (isLoading) => DOMElements.loadingSpinner.classList.toggle('hidden', !isLoading);
     const getPersianTypeName = (type) => ({
         'teacher': 'دبیر',
@@ -73,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'room': 'اتاق'
     })[type] || '';
     const cleanName = (name) => name ? name.toString().replace(/^\d+-\s*/, '') : '';
-    
+
     const hexToRgb = (hex) => {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         return result ? {
@@ -125,13 +136,13 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         });
     };
-    
+
     const logChange = (description) => {
         state.changeLog.unshift({
             time: new Date().toISOString(),
             description
         });
-        if(state.changeLog.length > 100) {
+        if (state.changeLog.length > 100) {
             state.changeLog.pop();
         }
     };
@@ -206,6 +217,10 @@ document.addEventListener('DOMContentLoaded', () => {
             integratedViewToggle.checked = state.settings.integratedView;
             DOMElements.appContainer.classList.toggle('integrated-view', state.settings.integratedView);
         }
+        const sixDayWeekToggle = getEl('six-day-week-toggle');
+        if (sixDayWeekToggle) {
+            sixDayWeekToggle.checked = state.settings.isSixDayWeek;
+        }
     };
 
     const processExcelData = (file, processFunction) => {
@@ -252,7 +267,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const importLessonsAndClasses = (data) => {
-        let newLessons = 0, newClasses = 0;
+        let newLessons = 0,
+            newClasses = 0;
         const warnings = new Set();
 
         data.forEach((row, index) => {
@@ -302,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (warnings.size > 0) {
             showToast(`چندین هشدار:\n${Array.from(warnings).join('\n')}`, 'warning', 8000);
         }
-        
+
         assignAllColors();
         showToast(`${toPersianNumber(newClasses)} کلاس و ${toPersianNumber(newLessons)} درس جدید با موفقیت اضافه شدند.`, 'success');
     };
@@ -394,7 +410,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         state.lessons.forEach(lesson => {
-            if(load[lesson.teacherId]) {
+            if (load[lesson.teacherId]) {
                 load[lesson.teacherId].total += (lesson.periods * HOUR_MULTIPLIER);
             }
         });
@@ -410,12 +426,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             const startPeriod = parseInt(periodStr);
 
                             // Check if this lesson starts in a merged cell
-                            const mergeInfo = state.merges[state.activeWeek].find(m => 
-                                m.classId === classId && 
-                                m.day === day && 
+                            const mergeInfo = state.merges[state.activeWeek].find(m =>
+                                m.classId === classId &&
+                                m.day === day &&
                                 m.startPeriod === startPeriod
                             );
-                            
+
                             // If it's in a merged cell, the duration is the cell's size. Otherwise, it's the lesson's own duration.
                             const occupiedPeriods = mergeInfo ? mergeInfo.count : lesson.periods;
                             load[lesson.teacherId].placed += (occupiedPeriods * HOUR_MULTIPLIER);
@@ -461,12 +477,12 @@ document.addEventListener('DOMContentLoaded', () => {
             container.innerHTML = `<div class="empty-state"><h3>به سامانه برنامه‌ریزی خوش آمدید!</h3><p>برای شروع، از بخش تنظیمات، داده‌های اولیه (دبیران و دروس) را وارد کنید.</p><button class="panel-btn" id="go-to-settings-btn"><i class="fas fa-cog"></i> رفتن به تنظیمات</button></div>`;
             return;
         }
-    
-        const days = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه'];
+
+        const days = getActiveDays();
         const periods = 4;
         const sortedClasses = state.classes.sort((a, b) => a.name.localeCompare(b.name));
         let tableHTML = `<div class="schedule-container" id="schedule-to-export"><table class="schedule-table">`;
-    
+
         tableHTML += `<thead><tr><th class="class-header sticky-col">کلاس</th>${days.map(day => `<th class="day-header" colspan="${periods}">${day}</th>`).join('')}</tr><tr><th class="class-header sticky-col"></th>`;
         days.forEach((day, dayIndex) => {
             for (let i = 1; i <= periods; i++) {
@@ -475,14 +491,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         tableHTML += '</tr></thead><tbody>';
-    
+
         sortedClasses.forEach(c => {
             const fieldColor = state.fieldColors[c.field] || '#ffffff';
             const fieldColorRgb = hexToRgb(fieldColor);
             const rgbString = fieldColorRgb ? `${fieldColorRgb.r}, ${fieldColorRgb.g}, ${fieldColorRgb.b}` : '255, 255, 255';
-            
+
             tableHTML += `<tr style="--field-color-rgb: ${rgbString};"><th class="class-header sticky-col"><div>${cleanName(c.name)}</div></th>`;
-            
+
             const renderedPeriods = new Set();
             days.forEach((day, dayIndex) => {
                 for (let period = 1; period <= periods; period++) {
@@ -491,7 +507,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const key = `${day}_${period}`;
                     const mergeInfo = state.merges[state.activeWeek]?.find(m => m.classId === c.id && m.day === day && m.startPeriod === period);
                     const slotContent = state.schedule[state.activeWeek]?.[c.id]?.[key];
-                    
+
                     let colspan = 1;
                     if (mergeInfo) {
                         colspan = mergeInfo.count;
@@ -507,7 +523,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     const separatorClass = (period + colspan - 1 === periods && dayIndex < days.length - 1) ? 'day-separator' : '';
-                    
+
                     let innerHTML = '';
                     if (slotContent && slotContent.length > 0) {
                         innerHTML = '<div class="shared-slot-container">';
@@ -531,7 +547,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tableHTML += '</tbody></table></div>';
         container.innerHTML = tableHTML;
     };
-    
+
     const renderTeacherSchedule = (teacherId) => {
         const container = DOMElements.teacherViewEl;
         if (!teacherId) {
@@ -539,9 +555,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const teacher = state.teachers.find(t => t.id === teacherId);
-        const days = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه'];
+        const days = getActiveDays();
         const periods = 4;
-        
+
         let tableHTML = `<div class="schedule-container" id="schedule-to-export"><h3 class="view-title">برنامه هفتگی دبیر: ${teacher.name}</h3><table class="schedule-table"><thead><tr><th>زنگ / روز</th>${days.map(day => `<th>${day}</th>`).join('')}</tr></thead><tbody>`;
 
         for (let period = 1; period <= periods; period++) {
@@ -580,8 +596,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!lesson) return '';
         const teacher = state.teachers.find(t => t.id === lesson.teacherId);
         const conflictDetails = checkForConflict(lesson, day, parseInt(period), classId);
-        
-        const isHighlighted = state.activeHighlights.some(h => 
+
+        const isHighlighted = state.activeHighlights.some(h =>
             (h.type === 'teacher' && lesson.teacherId === h.id) ||
             (h.type === 'class' && lesson.classId === h.id) ||
             (h.type === 'room' && lesson.roomId === h.id)
@@ -622,6 +638,11 @@ document.addEventListener('DOMContentLoaded', () => {
             DOMElements.appContainer.classList.toggle('integrated-view', state.settings.integratedView);
             saveState();
         });
+        getEl('six-day-week-toggle').addEventListener('change', (e) => {
+            state.settings.isSixDayWeek = e.target.checked;
+            saveState();
+            renderAll();
+        });
         DOMElements.teacherSelector.addEventListener('change', (e) => {
             if (state.activeView === 'teacher') {
                 renderTeacherSchedule(e.target.value);
@@ -653,7 +674,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (target.classList.contains('modal') || target.closest('.close-btn')) {
             const modal = target.closest('.modal');
-            if(modal) modal.style.display = 'none';
+            if (modal) modal.style.display = 'none';
             return;
         }
 
@@ -666,7 +687,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             return;
         }
-        
+
         const collapsibleHeader = target.closest('.section-header.collapsible');
         if (collapsibleHeader) {
             collapsibleHeader.parentElement.classList.toggle('collapsed');
@@ -700,8 +721,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (classList.contains('remove-highlight-btn')) {
             removeHighlight(dataset.type, dataset.id);
-        }
-        else if (id === 'full-view-btn' || id === 'teacher-view-btn') switchView(id.includes('full') ? 'full' : 'teacher');
+        } else if (id === 'full-view-btn' || id === 'teacher-view-btn') switchView(id.includes('full') ? 'full' : 'teacher');
         else if (id === 'print-btn') handlePrint();
         else if (id === 'export-excel-btn') exportToExcel();
         else if (id === 'export-img-btn' || id === 'export-pdf-btn') exportSchedule(id.includes('pdf') ? 'pdf' : 'img');
@@ -719,8 +739,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast('برنامه هفته الف با موفقیت به هفته ب کپی شد.', 'success');
                 if (state.activeWeek === 'B') renderAll();
             }
-        }
-        else if (id === 'clear-schedule-btn') {
+        } else if (id === 'clear-schedule-btn') {
             if (await showConfirm('پاک کردن جدول', `آیا از پاک کردن تمام دروس از جدول هفته "${state.activeWeek === 'A' ? 'الف' : 'ب'}" اطمینان دارید؟`)) {
                 Object.keys(state.schedule[state.activeWeek]).forEach(classId => {
                     state.schedule[state.activeWeek][classId] = {};
@@ -743,8 +762,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await finalizeMerge();
             }
             toggleMergeMode();
-        }
-        else if (id === 'print-all-teachers-btn') handlePrintAllTeachers();
+        } else if (id === 'print-all-teachers-btn') handlePrintAllTeachers();
         else if (id.startsWith('add-') && id.endsWith('-btn')) {
             const type = id.split('-')[1];
             openModal(type, 'add');
@@ -782,41 +800,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleDragStart = (e) => {
         const target = e.target.closest('.draggable, .lesson-in-table');
         if (!target) { e.preventDefault(); return; }
-    
+
         const isFromSidebar = target.classList.contains('draggable');
         const lessonId = target.dataset.id || target.dataset.lessonId;
-    
+
         state.draggedElementInfo = { lessonId, source: isFromSidebar ? 'sidebar' : 'schedule' };
-    
+
         if (!isFromSidebar) {
             const dropZone = target.closest('.drop-zone');
             state.draggedElementInfo.originClassId = dropZone.dataset.classId;
             state.draggedElementInfo.originKey = dropZone.dataset.key;
         }
-    
+
         e.dataTransfer.setData('text/plain', lessonId);
         e.dataTransfer.effectAllowed = 'move';
         setTimeout(() => target.classList.add('dragging'), 0);
     };
-    
+
     const handleDragEnd = (e) => {
         document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
         state.draggedElementInfo = null;
         document.querySelectorAll('.drag-over, .invalid-drop').forEach(el => el.classList.remove('drag-over', 'invalid-drop'));
     };
-    
+
     const handleDragOver = (e) => {
         e.preventDefault();
         const dropZone = e.target.closest('.drop-zone');
         if (!dropZone || state.activeView !== 'full' || state.isMergeMode) return;
-    
+
         const lessonId = state.draggedElementInfo?.lessonId;
         if (!lessonId) return;
         const lesson = state.lessons.find(l => l.id === lessonId);
         if (!lesson) return;
-    
+
         const { classId } = dropZone.dataset;
-        
+
         if (lesson.classId !== classId) {
             dropZone.classList.add('invalid-drop');
             return;
@@ -824,11 +842,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const colspan = parseInt(dropZone.getAttribute('colspan') || '1');
 
-        if(lesson.periods > colspan) {
-             dropZone.classList.add('invalid-drop');
-             return;
+        if (lesson.periods > colspan) {
+            dropZone.classList.add('invalid-drop');
+            return;
         }
-        
+
         const { day } = dropZone.dataset;
         const startPeriod = parseInt(dropZone.dataset.period);
         let canPlace = true;
@@ -836,50 +854,50 @@ document.addEventListener('DOMContentLoaded', () => {
             const period = startPeriod + i;
             const key = `${day}_${period}`;
             const slotContent = state.schedule[state.activeWeek]?.[classId]?.[key] || [];
-            
+
             if (isSlotLocked({ classId, day, period, lessonId }) || slotContent.length >= 2) {
                 canPlace = false;
                 break;
             }
         }
-    
+
         if (canPlace) {
             dropZone.classList.add('drag-over');
         } else {
             dropZone.classList.add('invalid-drop');
         }
     };
-    
+
     const handleDragLeave = (e) => {
         const dropZone = e.target.closest('.drop-zone');
-        if(dropZone) {
+        if (dropZone) {
             dropZone.classList.remove('drag-over', 'invalid-drop');
         }
     };
-    
+
     const handleDrop = async (e) => {
         e.preventDefault();
         const dropZone = e.target.closest('.drop-zone');
         document.querySelectorAll('.drag-over, .invalid-drop').forEach(el => el.classList.remove('drag-over', 'invalid-drop'));
-    
+
         if (!state.draggedElementInfo || !dropZone || state.activeView !== 'full' || state.isMergeMode) return;
-    
+
         const lessonId = e.dataTransfer.getData('text/plain');
         const lesson = state.lessons.find(l => l.id === lessonId);
         if (!lesson) return;
-    
+
         const { day, classId } = dropZone.dataset;
         const startPeriod = parseInt(dropZone.dataset.period);
-        
+
         if (lesson.classId !== classId) {
             showToast('درس فقط می‌تواند در کلاس مربوط به خودش قرار گیرد.', 'error');
             return;
         }
 
         const colspan = parseInt(dropZone.getAttribute('colspan') || '1');
-        if(lesson.periods > colspan) {
-             showToast(`این درس به ${toPersianNumber(lesson.periods)} زنگ نیاز دارد، اما این فضا فقط ${toPersianNumber(colspan)} زنگ است.`, 'error');
-             return;
+        if (lesson.periods > colspan) {
+            showToast(`این درس به ${toPersianNumber(lesson.periods)} زنگ نیاز دارد، اما این فضا فقط ${toPersianNumber(colspan)} زنگ است.`, 'error');
+            return;
         }
 
         for (let i = 0; i < lesson.periods; i++) {
@@ -891,22 +909,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
         }
-    
+
         const conflictDetails = checkForConflict(lesson, day, startPeriod, classId);
         if (conflictDetails) {
             let message = `تداخل دبیر با کلاس: ${conflictDetails.teacher.map(cleanName).join(', ')}.`;
             if (!(await showConfirm('تداخل در برنامه', `${message} آیا می‌خواهید ادامه دهید؟`))) return;
         }
-    
+
         if (state.draggedElementInfo.source === 'schedule') {
             removeLessonFromSchedule(state.draggedElementInfo.originClassId, lessonId, state.draggedElementInfo.originKey);
         }
-    
+
         placeLessonInSchedule(classId, day, startPeriod, lesson);
-        
+
         const className = state.classes.find(c => c.id === classId)?.name || '';
         logChange(`درس "${cleanName(lesson.name)}" در کلاس "${cleanName(className)}" روز ${day} زنگ ${toPersianNumber(startPeriod)} قرار گرفت.`);
-    
+
         saveState();
         renderAll();
     };
@@ -935,7 +953,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const placeLessonInSchedule = (classId, day, startPeriod, lesson) => {
         const schedule = state.schedule[state.activeWeek];
         if (!schedule[classId]) schedule[classId] = {};
-    
+
         for (let i = 0; i < lesson.periods; i++) {
             const period = startPeriod + i;
             const key = `${day}_${period}`;
@@ -948,18 +966,18 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     };
-    
+
     const removeLessonFromSchedule = (classId, lessonIdToRemove, startKey) => {
         const schedule = state.schedule[state.activeWeek][classId];
         const lesson = state.lessons.find(l => l.id === lessonIdToRemove);
         if (!schedule || !lesson || !startKey) {
-             console.error("Remove failed: missing data", {classId, lessonIdToRemove, startKey});
-             return;
+            console.error("Remove failed: missing data", { classId, lessonIdToRemove, startKey });
+            return;
         }
-    
+
         const [day, periodStr] = startKey.split('_');
         const startPeriod = parseInt(periodStr);
-    
+
         for (let i = 0; i < lesson.periods; i++) {
             const key = `${day}_${startPeriod + i}`;
             if (schedule[key]) {
@@ -974,7 +992,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleDelete = (type, id) => {
         const item = state[type === 'class' ? 'classes' : `${type}s`]?.find(i => i.id === id);
         const itemName = item ? cleanName(item.name) : 'مورد حذف شده';
-        
+
         const arrayName = type === 'class' ? 'classes' : `${type}s`;
         state[arrayName] = state[arrayName].filter(item => item.id !== id);
 
@@ -999,7 +1017,7 @@ document.addEventListener('DOMContentLoaded', () => {
             delete state.schedule.A[id];
             delete state.schedule.B[id];
         }
-        
+
         logChange(`${getPersianTypeName(type)} "${itemName}" و تمام دروس مرتبط حذف شد.`);
         saveState();
         if (getEl('settings-modal').style.display === 'flex') renderManagementLists();
@@ -1010,7 +1028,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const openModal = (type, mode = 'add', id = null) => {
         const modal = getEl(`${type}-modal`);
         if (!modal) return;
-    
+
         if (type === 'settings') {
             renderManagementLists();
             renderConstraintItemSelect();
@@ -1018,30 +1036,30 @@ document.addEventListener('DOMContentLoaded', () => {
             modal.style.display = 'flex';
             return;
         }
-    
+
         const form = modal.querySelector('form');
         if (form) {
             form.reset();
             form.dataset.mode = mode;
             form.dataset.id = id || '';
         }
-    
+
         modal.querySelector('h2').textContent = `${mode === 'edit' ? 'ویرایش' : 'افزودن'} ${getPersianTypeName(type)}`;
-    
+
         if (type === 'lesson') {
             const teacherSelect = getEl('lesson-teacher-select');
             teacherSelect.innerHTML = '<option value="">-- انتخاب دبیر --</option>';
-            state.teachers.sort((a,b) => a.name.localeCompare(b.name)).forEach(t => teacherSelect.innerHTML += `<option value="${t.id}">${t.name}</option>`);
-    
+            state.teachers.sort((a, b) => a.name.localeCompare(b.name)).forEach(t => teacherSelect.innerHTML += `<option value="${t.id}">${t.name}</option>`);
+
             const classSelect = getEl('lesson-class-select');
             classSelect.innerHTML = '<option value="">-- انتخاب کلاس --</option>';
-            state.classes.sort((a,b) => a.name.localeCompare(b.name)).forEach(c => classSelect.innerHTML += `<option value="${c.id}">${cleanName(c.name)}</option>`);
-            
+            state.classes.sort((a, b) => a.name.localeCompare(b.name)).forEach(c => classSelect.innerHTML += `<option value="${c.id}">${cleanName(c.name)}</option>`);
+
             const roomSelect = getEl('lesson-room-select');
             roomSelect.innerHTML = '<option value="">-- بدون اتاق خاص --</option>';
-            state.rooms.sort((a,b) => a.name.localeCompare(b.name)).forEach(r => roomSelect.innerHTML += `<option value="${r.id}">${r.name}</option>`);
+            state.rooms.sort((a, b) => a.name.localeCompare(b.name)).forEach(r => roomSelect.innerHTML += `<option value="${r.id}">${r.name}</option>`);
         }
-    
+
         if (mode === 'edit' && id) {
             const arrayName = type === 'class' ? 'classes' : `${type}s`;
             const item = state[arrayName]?.find(i => i.id === id);
@@ -1057,10 +1075,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 getEl('class-field-input').value = item.field || "";
             }
         }
-    
+
         modal.style.display = 'flex';
     };
-    
+
     const handleFormSubmit = (e) => {
         e.preventDefault();
         const form = e.target;
@@ -1068,11 +1086,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const { mode, id } = form.dataset;
         const name = form.querySelector(`[id$="-name-input"]`).value.trim();
         if (!name && type !== 'room') {
-             showToast("نام نمی‌تواند خالی باشد.", "error"); return; 
+            showToast("نام نمی‌تواند خالی باشد.", "error");
+            return;
         }
-    
+
         const dataArrayName = type === 'class' ? 'classes' : `${type}s`;
-    
+
         if (mode === 'add') {
             const newItem = { id: `${type[0]}${Date.now()}${Math.random()}`, name };
             if (type === 'lesson') {
@@ -1105,7 +1124,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 logChange(`${getPersianTypeName(type)} "${name}" ویرایش شد.`);
             }
         }
-    
+
         saveState();
         assignAllColors();
         if (getEl('settings-modal').style.display === 'flex') renderManagementLists();
@@ -1126,7 +1145,7 @@ document.addEventListener('DOMContentLoaded', () => {
         logChange('پشتیبان‌گیری از اطلاعات انجام شد.');
         saveState();
     };
-    
+
     const startBackupReminder = () => {
         if (backupInterval) clearInterval(backupInterval);
         backupInterval = setInterval(() => {
@@ -1138,10 +1157,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportToExcel = () => {
         showLoading(true);
         try {
-            const days = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه'];
+            const days = getActiveDays();
             const periods = 4;
             const sortedClasses = state.classes.sort((a, b) => a.name.localeCompare(b.name));
-            
+
             const data = [];
             const headerRow = ['کلاس'];
             days.forEach(day => {
@@ -1150,14 +1169,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             data.push(headerRow);
-    
+
             sortedClasses.forEach(c => {
                 const row = [cleanName(c.name)];
                 days.forEach(day => {
                     for (let p = 1; p <= periods; p++) {
                         const key = `${day}_${p}`;
                         const slotContent = state.schedule[state.activeWeek]?.[c.id]?.[key];
-                        
+
                         if (slotContent && slotContent.length > 0) {
                             const cellText = slotContent.map(entry => {
                                 const lesson = state.lessons.find(l => l.id === entry.lessonId);
@@ -1173,14 +1192,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 data.push(row);
             });
-    
+
             const worksheet = XLSX.utils.aoa_to_sheet(data);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "برنامه هفتگی");
-    
+
             const colWidths = headerRow.map((_, i) => ({ wch: i === 0 ? 20 : 30 }));
             worksheet['!cols'] = colWidths;
-    
+
             XLSX.writeFile(workbook, `برنامه-هفتگی-${state.activeWeek}.xlsx`);
             showToast('خروجی اکسل با موفقیت ایجاد شد.', 'success');
         } catch (err) {
@@ -1198,17 +1217,17 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         showLoading(true);
-        
+
         DOMElements.appContainer.classList.add('preparing-export');
         await new Promise(resolve => setTimeout(resolve, 100));
-    
+
         try {
             const canvas = await html2canvas(elementToExport, {
                 scale: 2.5,
                 useCORS: true,
                 backgroundColor: DOMElements.body.classList.contains('dark-theme') ? '#1e272e' : '#ffffff',
             });
-    
+
             if (type === 'img') {
                 const link = document.createElement('a');
                 link.download = `برنامه-هفتگی.png`;
@@ -1241,7 +1260,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showLoading(false);
         }
     };
-    
+
     const handlePrint = () => {
         DOMElements.body.classList.add('printing');
         setTimeout(() => {
@@ -1261,7 +1280,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let content = '';
         const originalView = state.activeView;
         const originalTeacher = DOMElements.teacherSelector.value;
-        
+
         DOMElements.fullSchoolViewEl.classList.remove('active');
         DOMElements.teacherViewEl.classList.add('active');
 
@@ -1276,7 +1295,7 @@ document.addEventListener('DOMContentLoaded', () => {
         DOMElements.body.classList.add('printing');
         printContainer.classList.remove('hidden');
         DOMElements.appContainer.classList.add('hidden');
-        
+
         showLoading(false);
 
         setTimeout(() => {
@@ -1286,7 +1305,7 @@ document.addEventListener('DOMContentLoaded', () => {
             printContainer.innerHTML = '';
             DOMElements.appContainer.classList.remove('hidden');
             switchView(originalView);
-            if(originalView === 'teacher') {
+            if (originalView === 'teacher') {
                 DOMElements.teacherSelector.value = originalTeacher;
                 renderTeacherSchedule(originalTeacher);
             }
@@ -1294,7 +1313,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
 
-    const handleRestore = async (e) => { 
+    const handleRestore = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
         if (await showConfirm('بازیابی اطلاعات', 'هشدار: تمام اطلاعات فعلی شما با محتویات این فایل جایگزین خواهد شد. آیا ادامه می‌دهید؟')) {
@@ -1305,7 +1324,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (restoredState.teachers && restoredState.lessons && restoredState.classes && restoredState.schedule) {
                         const tempState = {};
                         setDefaultState.call({ state: tempState });
-                        
+
                         state = {
                             ...tempState,
                             ...restoredState,
@@ -1327,7 +1346,7 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.readAsText(file);
         }
         e.target.value = '';
-     };
+    };
 
     const switchView = (viewName) => {
         state.activeView = viewName;
@@ -1368,21 +1387,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const lesson = lessonId ? state.lessons.find(l => l.id === lessonId) : null;
         const teacherId = lesson?.teacherId;
         const periodNum = parseInt(period);
-    
+
         return state.constraints.unavailable.some(c =>
             (c.type === 'class' && c.id === classId && c.day === day && c.period === periodNum) ||
             (c.type === 'teacher' && c.id === teacherId && c.day === day && c.period === periodNum)
         );
     };
-    
+
     const checkForConflict = (lesson, day, startPeriod, currentClassId) => {
         if (!lesson) return null;
         const conflicts = { teacher: [], room: [] };
-    
+
         for (let i = 0; i < lesson.periods; i++) {
             const period = startPeriod + i;
             const key = `${day}_${period}`;
-    
+
             for (const classId in state.schedule[state.activeWeek]) {
                 if (classId === currentClassId) continue;
                 const slot = state.schedule[state.activeWeek][classId]?.[key] || [];
@@ -1399,10 +1418,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         }
-    
+
         const teacherConflict = [...new Set(conflicts.teacher)];
         const roomConflict = [...new Set(conflicts.room)];
-        
+
         if (teacherConflict.length > 0 || roomConflict.length > 0) {
             return { teacher: teacherConflict, room: roomConflict };
         }
@@ -1435,7 +1454,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const conflicts = { teacher: [], room: [] };
         const timeSlots = {};
-        const days = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه'];
+        const days = getActiveDays();
         const periods = 4;
 
         for (const day of days) {
@@ -1479,7 +1498,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
-        
+
         let conflictsHTML = '<h4><i class="fas fa-exclamation-triangle"></i> تداخل‌ها</h4>';
         const allConflicts = [...new Set(conflicts.teacher), ...new Set(conflicts.room)];
         if (allConflicts.length === 0) {
@@ -1497,7 +1516,7 @@ document.addEventListener('DOMContentLoaded', () => {
         DOMElements.fullSchoolViewEl.classList.toggle('merge-mode', state.isMergeMode);
         state.mergeSelection = [];
         document.querySelectorAll('.merge-select').forEach(c => c.classList.remove('merge-select'));
-        if(state.isMergeMode) {
+        if (state.isMergeMode) {
             showToast('حالت ادغام فعال شد. روی زنگ‌های متوالی کلیک کنید.', 'info');
         }
     };
@@ -1529,7 +1548,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const cellInfo = { classId, day, period: periodNum, element: cell };
-        
+
         const selectedIndex = state.mergeSelection.findIndex(s => s.period === periodNum);
         if (selectedIndex > -1) {
             state.mergeSelection.splice(selectedIndex, 1);
@@ -1539,26 +1558,25 @@ document.addEventListener('DOMContentLoaded', () => {
             cell.classList.add('merge-select');
         }
     };
-    
+
     const finalizeMerge = async () => {
         if (state.mergeSelection.length === 0) return;
 
         if (state.mergeSelection.length === 1 && state.mergeSelection[0].mergeToRemove) {
             const merge = state.mergeSelection[0].mergeToRemove;
             if (await showConfirm('جداسازی زنگ‌ها', 'آیا این بخش از حالت ادغام خارج شود؟')) {
-                 const index = state.merges[state.activeWeek].indexOf(merge);
-                 if (index > -1) {
-                     state.merges[state.activeWeek].splice(index, 1);
-                     logChange(`ادغام در کلاس "${cleanName(state.classes.find(c=>c.id===merge.classId)?.name)}" روز ${merge.day} لغو شد.`);
-                     saveState();
-                     refreshCurrentView();
-                 }
+                const index = state.merges[state.activeWeek].indexOf(merge);
+                if (index > -1) {
+                    state.merges[state.activeWeek].splice(index, 1);
+                    logChange(`ادغام در کلاس "${cleanName(state.classes.find(c=>c.id===merge.classId)?.name)}" روز ${merge.day} لغو شد.`);
+                    saveState();
+                    refreshCurrentView();
+                }
             }
-        } 
-        else if (state.mergeSelection.length > 1) {
+        } else if (state.mergeSelection.length > 1) {
             state.mergeSelection.sort((a, b) => a.period - b.period);
             const periods = state.mergeSelection.map(s => s.period);
-            const isConsecutive = periods.every((p, i) => i === 0 || p === periods[i-1] + 1);
+            const isConsecutive = periods.every((p, i) => i === 0 || p === periods[i - 1] + 1);
 
             if (!isConsecutive) {
                 showToast('فقط زنگ‌های متوالی را می‌توان ادغام کرد.', 'error');
@@ -1652,7 +1670,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     };
-    
+
     const autoSchedule = async () => {
         showLoading(true);
         await new Promise(resolve => setTimeout(resolve, 50));
@@ -1662,7 +1680,7 @@ document.addEventListener('DOMContentLoaded', () => {
         );
         const unplacedLessons = state.lessons.filter(lesson => !scheduledLessonIds.has(lesson.id));
         let placedCount = 0;
-        const days = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه'];
+        const days = getActiveDays();
         const periods = 4;
 
         for (const lesson of unplacedLessons) {
@@ -1738,7 +1756,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderList(getEl(`${config.type}-list-management`), sortedData, config.type);
         }
     };
-    
+
     const renderChangeLog = () => {
         const listEl = getEl('change-log-list');
         if (!listEl) return;
@@ -1775,7 +1793,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!container) return;
         const type = getEl('constraint-type-select').value;
         const selectedId = getEl('constraint-item-select').value;
-        const days = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه'];
+        const days = getActiveDays();
         const periods = 4;
         let tableHTML = `<table id="constraints-table"><thead><tr><th></th>${days.map(day => `<th>${day.slice(0,3)}</th>`).join('')}</tr></thead><tbody>`;
         for (let i = 1; i <= periods; i++) {
