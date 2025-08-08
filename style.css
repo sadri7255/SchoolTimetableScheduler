@@ -238,12 +238,19 @@ body {
     overflow: hidden;
 }
 
-/* Allow sidebar sections to grow */
+/* Allow sidebar sections to grow and shrink */
 #unplaced-lessons-container, #teacher-load-container {
     flex-grow: 1;
-    min-height: 150px; /* Minimum height to be usable */
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
 }
 
+.sidebar-section.collapsed {
+    flex-grow: 0;
+    min-height: 50px; /* Height of the header */
+    flex-shrink: 1;
+}
 
 .section-header {
     display: flex;
@@ -260,11 +267,6 @@ body {
     margin-bottom: 0;
     padding-bottom: 0.75rem;
     transition: margin-bottom 0.3s ease;
-}
-
-.sidebar-section.collapsed {
-    flex-grow: 0;
-    min-height: 0;
 }
 
 .sidebar-section.collapsed .section-header {
@@ -298,12 +300,17 @@ body {
     flex-direction: column;
     flex-grow: 1;
     overflow: hidden;
-    transition: all 0.4s ease;
+    transition: opacity 0.3s ease, max-height 0.4s ease, padding 0.4s ease;
+    max-height: 1000px; /* Arbitrary large number for open state */
+    opacity: 1;
 }
 .sidebar-section.collapsed .section-content {
-    flex-grow: 0;
-    visibility: hidden;
+    max-height: 0;
     opacity: 0;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin-top: -1rem; /* Counteract header margin */
+    pointer-events: none;
 }
 #unplaced-lessons-container .section-content {
     padding-top: 1rem; /* Add padding back */
@@ -340,7 +347,25 @@ body {
     overflow-y: auto;
     padding-right: 0.5rem;
     flex-grow: 1; /* This makes the list take up available space */
+    min-height: 100px; /* Ensure it's always droppable */
 }
+
+/* Add a visual cue for empty drop zone */
+#unplaced-lessons-list:empty::after {
+    content: 'درس‌ها را برای بازگرداندن به اینجا بکشید';
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    min-height: 100px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    text-align: center;
+    border: 2px dashed var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: 1rem;
+}
+
 .sidebar .item-list.drag-over-sidebar {
     background-color: var(--accent-color);
     opacity: 0.1;

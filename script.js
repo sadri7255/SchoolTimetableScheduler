@@ -3,15 +3,14 @@
  * A comprehensive, interactive, and persistent single-page application 
  * for creating and managing school timetables.
  *
- * @version 15.0.0
+ * @version 16.0.0
  * @author Gemini & S.M.Kazem Sadri
  *
- * Changelog v15.0.0:
- * - MAJOR FIX: Resolved critical DOM issue caused by nested HTML in the 'About' tab, which fixed numerous bugs including cell merging, copy-to-week-B, and modal popups.
- * - FEATURE: Reworked Highlight tool to support multiple, simultaneous highlights. Users can now see a list of active highlights and remove them individually.
- * - UI FIX: Moved 'Auto-Schedule' button to the main toolbar for better accessibility and consistent UI.
- * - LAYOUT FIX: Corrected layout issues where the main content and sidebar sections would not use available height, preventing content from being obscured by the validation panel.
- * - VERIFICATION: Confirmed that teacher load calculation correctly uses the lesson's 'periods' property, not the cell size. The perceived bug was a side-effect of other DOM issues.
+ * Changelog v16.0.0:
+ * - LOGIC CHANGE: Teacher load calculation now considers merged cells. If a lesson is placed in a merged slot, its duration is based on the size of the slot, not the lesson's properties.
+ * - FIX: Resolved a rendering bug in the Settings modal where tab content would sometimes not appear. Content is now reliably re-rendered on tab switch.
+ * - UI/UX FIX: Improved sidebar section collapse behavior. Collapsing one section now correctly allocates the freed space to the other.
+ * - UI/UX FIX: The "Unplaced Lessons" list now maintains a minimum height and displays a helper message when empty, ensuring it's always a valid drop target.
  */
 document.addEventListener('DOMContentLoaded', () => {
     // --- 1. DOM Element Cache ---
@@ -168,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 5. Data Persistence & I/O ---
     const saveState = () => {
         try {
-            localStorage.setItem('schoolScheduleData_v15', JSON.stringify(state));
+            localStorage.setItem('schoolScheduleData_v16', JSON.stringify(state));
         } catch (error) {
             console.error("Failed to save state:", error);
             showToast("خطا در ذخیره‌سازی اطلاعات.", "error");
@@ -176,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const loadState = () => {
-        const savedState = localStorage.getItem('schoolScheduleData_v15') || localStorage.getItem('schoolScheduleData_v14') || localStorage.getItem('schoolScheduleData_v13') || localStorage.getItem('schoolScheduleData_v12') || localStorage.getItem('schoolScheduleData_v11') || localStorage.getItem('schoolScheduleData_v10');
+        const savedState = localStorage.getItem('schoolScheduleData_v16') || localStorage.getItem('schoolScheduleData_v15') || localStorage.getItem('schoolScheduleData_v14') || localStorage.getItem('schoolScheduleData_v13') || localStorage.getItem('schoolScheduleData_v12') || localStorage.getItem('schoolScheduleData_v11') || localStorage.getItem('schoolScheduleData_v10');
         setDefaultState();
         if (savedState) {
             const loaded = JSON.parse(savedState);
@@ -350,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderList = (element, items, type) => {
         if (!element) return;
         element.innerHTML = '';
-        if (items.length === 0) {
+        if (items.length === 0 && type !== 'lesson') { // Keep drop target for lessons
             element.innerHTML = `<p class="empty-list-text">موردی برای نمایش وجود ندارد.</p>`;
             return;
         }
@@ -400,12 +399,27 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        Object.values(state.schedule[state.activeWeek]).forEach(classSchedule => {
-            Object.values(classSchedule).forEach(slot => {
+        // New calculation logic based on placement
+        Object.entries(state.schedule[state.activeWeek]).forEach(([classId, classSchedule]) => {
+            Object.entries(classSchedule).forEach(([key, slot]) => {
                 slot.forEach(entry => {
-                    const lesson = state.lessons.find(l => l.id === entry.lessonId);
-                    if (lesson && lesson.teacherId && load[lesson.teacherId] && entry.isStart) {
-                        load[lesson.teacherId].placed += (lesson.periods * HOUR_MULTIPLIER);
+                    if (entry.isStart) {
+                        const lesson = state.lessons.find(l => l.id === entry.lessonId);
+                        if (lesson && lesson.teacherId && load[lesson.teacherId]) {
+                            const [day, periodStr] = key.split('_');
+                            const startPeriod = parseInt(periodStr);
+
+                            // Check if this lesson starts in a merged cell
+                            const mergeInfo = state.merges[state.activeWeek].find(m => 
+                                m.classId === classId && 
+                                m.day === day && 
+                                m.startPeriod === startPeriod
+                            );
+                            
+                            // If it's in a merged cell, the duration is the cell's size. Otherwise, it's the lesson's own duration.
+                            const occupiedPeriods = mergeInfo ? mergeInfo.count : lesson.periods;
+                            load[lesson.teacherId].placed += (occupiedPeriods * HOUR_MULTIPLIER);
+                        }
                     }
                 });
             });
@@ -742,10 +756,25 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (await showConfirm(`حذف ${getPersianTypeName(type)}`, `آیا از حذف این مورد اطمینان دارید؟ تمام دروس مرتبط نیز حذف خواهند شد.`)) handleDelete(type, itemId);
         } else if (classList.contains('tab-btn')) {
             const tabId = dataset.tab;
+            // Switch active tab button
             button.parentElement.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
-            button.closest('.modal-content').querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            if(tabId === 'change-log') renderChangeLog();
+            // Switch active tab content
+            const modalContent = button.closest('.modal-content');
+            modalContent.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            const activeTabContent = getEl(`${tabId}-tab`);
+            if (activeTabContent) {
+                activeTabContent.classList.add('active');
+            }
+
+            // Re-render content for specific tabs to ensure it's up-to-date
+            if (tabId === 'data-management') {
+                renderManagementLists();
+            } else if (tabId === 'constraints') {
+                renderConstraintItemSelect(); // This will also call renderConstraintsSchedule
+            } else if (tabId === 'change-log') {
+                renderChangeLog();
+            }
         }
     };
 
