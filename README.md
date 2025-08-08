@@ -1,6 +1,12 @@
 # سامانه هوشمند تنظیم برنامه هفتگی مدارس
 
-![بنر سامانه برنامه هفتگی](https://placehold.co/1200x400/4a69bd/ffffff?text=%D8%B3%D8%A7%D9%85%D8%A7%D9%86%D9%87%20%D9%87%D9%88%D8%B4%D9%85%D9%86%D8%AF%20%D8%A8%D8%B1%D9%86%D8%A7%D9%85%D9%87%20%D9%87%D9%81%D8%AA%DA%AF%DB%8C&font=vazirmatn)
+<div align="center">
+
+[![Live Demo](https://img.shields.io/badge/Live_Demo-مشاهده_دموی_زنده-28a745?style=for-the-badge)](https://sadri7255.github.io/SchoolTimetableScheduler/)
+
+</div>
+
+![بنر سامانه برنامه هفتگی](https://s6.uupload.ir/files/صفحه_اصلی_6qi7.png)
 
 <div align="center">
 
@@ -44,15 +50,13 @@
 
 ## 📸 تصاویر سامانه
 
-**(نکته: لطفاً این بخش را با تصاویر واقعی از برنامه خود جایگزین کنید)**
-
-| نمای کلی برنامه مدرسه | نمای برنامه دبیر |
+| نمای کلی برنامه مدرسه | نمونه برنامه تکمیل شده |
 | :--------------------: | :-----------------: |
-| ![تصویر نمای کلی برنامه](https://placehold.co/600x400/ffffff/999999?text=%D8%AA%D8%B5%D9%88%DB%8C%D8%B1%20%D9%86%D9%85%D8%A7%DB%8C%20%D8%A7%D8%B5%D9%84%DB%8C) | ![تصویر نمای برنامه دبیر](https://placehold.co/600x400/ffffff/999999?text=%D8%AA%D8%B5%D9%88%DB%8C%D8%B1%20%D9%86%D9%85%D8%A7%DB%8C%20%D8%AF%D8%A8%DB%8C%D8%B1) |
+| ![تصویر نمای کلی برنامه](https://s6.uupload.ir/files/صفحه_اصلی_6qi7.png) | ![نمونه برنامه](https://s6.uupload.ir/files/نمونه_برنامه_ed9j.png) |
 
-| پنجره تنظیمات | بخش ورود اطلاعات از اکسل |
+| پنجره تنظیمات | انواع خروجی‌ها |
 | :--------------------: | :-----------------: |
-| ![تصویر پنجره تنظیمات](https://placehold.co/600x400/ffffff/999999?text=%D8%AA%D8%B5%D9%88%DB%8C%D8%B1%20%D8%AA%D9%86%D8%B8%DB%8C%D9%85%D8%A7%D8%AA) | ![تصویر بخش ورود اطلاعات](https://placehold.co/600x400/ffffff/999999?text=%D8%AA%D8%B5%D9%88%DB%8C%D8%B1%20%D9%88%D8%B1%D9%88%D8%AF%20%D8%A7%D8%B7%D9%84%D8%A7%D8%B9%D8%A7%D8%AA) |
+| ![تصویر پنجره تنظیمات](https://s6.uupload.ir/files/پنجره_تنظیمات_phi6.png) | ![دکمه های انواع خروجی](https://s6.uupload.ir/files/انواع_خروجی_ها_ub4i.png) |
 
 ---
 
@@ -73,9 +77,8 @@
 
 1.  این مخزن (Repository) را Clone کنید:
     ```bash
-    git clone [https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git](https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git)
+    git clone [https://github.com/sadri7255/SchoolTimetableScheduler.git](https://github.com/sadri7255/SchoolTimetableScheduler.git)
     ```
-    **(فراموش نکنید `YOUR_USERNAME` و `YOUR_REPOSITORY_NAME` را با نام کاربری و نام مخزن خود در گیت‌هاب جایگزین کنید.)**
 
 2.  وارد پوشه پروژه شوید.
 3.  فایل `index.html` را در مرورگر خود باز کنید.
@@ -90,8 +93,7 @@
   <table style="border: 1px solid #ddd; border-radius: 12px; padding: 20px; width: 80%; max-width: 600px; margin: 20px auto; background-color: #f8f9fa; box-shadow: 0 4px 8px rgba(0,0,0,0.05);">
     <tr>
       <td align="center">
-        <!-- **نکته:** برای نمایش عکس، وارد پروفایل گیت‌هاب خود شوید، روی عکس کلیک راست کرده و آدرس آن را کپی و اینجا جایگزین کنید. -->
-        <img src="https://avatars.githubusercontent.com/u/1234567?v=4" width="120px;" style="border-radius: 50%; border: 4px solid #4a69bd;" alt="تصویر پروفایل سیدمحمدکاظم صدری شال"/>
+        <img src="https://avatars.githubusercontent.com/u/129892053?s=400&u=a8f6b97dfea9c274b5fccca8094b9a74267e48c8&v=4" width="120px;" style="border-radius: 50%; border: 4px solid #4a69bd;" alt="تصویر پروفایل سیدمحمدکاظم صدری شال"/>
         <h2 style="margin-top: 15px; margin-bottom: 5px; color: #1e3799;">سیدمحمدکاظم صدری شال</h2>
         <p style="margin: 0; color: #555;">ایده‌پرداز، طراح و توسعه‌دهنده سامانه</p>
       </td>
