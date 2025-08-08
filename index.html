@@ -204,15 +204,25 @@
             <!-- Data I/O Tab -->
             <div class="tab-content active" id="data-io-tab">
                 <div class="settings-columns">
-                    <div class="settings-section">
-                        <h3><i class="fas fa-file-import"></i> ورود اطلاعات از اکسل</h3>
-                        <p class="help-text">برای ورود دروس، فایل اکسل باید شامل ستون‌های "کلاس"، "نام درس"، "کد پرسنلی"، "تعداد زنگ" و "رشته" باشد.</p>
-                        <button id="import-teachers-btn" class="panel-btn"><i class="fas fa-chalkboard-teacher"></i>
-                            ورود لیست دبیران</button>
-                        <input type="file" id="import-teachers-input" accept=".xlsx, .xls" class="hidden">
-                        <button id="import-lessons-btn" class="panel-btn"><i class="fas fa-book-reader"></i> ورود دروس و کلاس‌ها</button>
-                        <input type="file" id="import-lessons-input" accept=".xlsx, .xls" class="hidden">
-                    </div>
+					<div class="settings-section">
+						<h3><i class="fas fa-file-import"></i> ورود اطلاعات از اکسل</h3>
+						<p class="help-text">برای ورود داده‌ها، فایل اکسل باید دارای ستون‌های مشخصی باشد. برای سهولت کار می‌توانید از فایل‌های نمونه استفاده کنید.</p>
+
+						<div class="sample-links-container">
+							<a href="https://uupload.ir/view/نمونه_فایل_لیست_پرسنل_و_دبیران_eckl.xlsx/" target="_blank" rel="noopener noreferrer" class="sample-link">
+								<i class="fas fa-download"></i> دانلود نمونه فایل لیست پرسنل
+							</a>
+							<a href="https://uupload.ir/view/نمونه_فایل_تخصیص_دبیر_به_درس_zfhc.xlsx/" target="_blank" rel="noopener noreferrer" class="sample-link">
+								<i class="fas fa-download"></i> دانلود نمونه فایل تخصیص دروس
+							</a>
+						</div>
+
+						<button id="import-teachers-btn" class="panel-btn"><i class="fas fa-chalkboard-teacher"></i>
+							ورود لیست دبیران</button>
+						<input type="file" id="import-teachers-input" accept=".xlsx, .xls" class="hidden">
+						<button id="import-lessons-btn" class="panel-btn"><i class="fas fa-book-reader"></i> ورود دروس و کلاس‌ها</button>
+						<input type="file" id="import-lessons-input" accept=".xlsx, .xls" class="hidden">
+					</div>
                     <div class="settings-section">
                         <h3><i class="fas fa-database"></i> پشتیبان‌گیری و همگام‌سازی</h3>
                         <button id="backup-btn" class="panel-btn success"><i class="fas fa-download"></i> پشتیبان‌گیری
@@ -286,11 +296,11 @@
                     <p><strong>تاریخ تولید:</strong> مرداد ماه 1404</p>
                     <hr>
                     <h4>روش‌های ارتباطی</h4>
-					<div class="contact-links">
+                    <div class="contact-links">
 						<p><i class="fab fa-telegram"></i> تلگرام: <a href="https://t.me/sadri1993" target="_blank" rel="noopener noreferrer">https://t.me/sadri1993</a></p>
 						<p><i class="fas fa-comment-dots"></i> ایتا: <a href="https://eitaa.com/sadri_1993" target="_blank" rel="noopener noreferrer">https://eitaa.com/sadri_1993</a></p>
 						<p><i class="fas fa-phone"></i> شماره تماس: <a href="tel:09386280750">09386280750</a></p>
-					</div>
+                    </div>
                 </div>
             </div>
         </div>
